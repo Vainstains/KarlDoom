@@ -17,30 +17,29 @@
 
 using System;
 using System.IO;
-using SFML.Window;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
-namespace ManagedDoom.SFML
+namespace ManagedDoom.Xna
 {
-    public static class SfmlConfigUtilities
+    public static class XnaConfigUtilities
     {
-        public static Config GetConfig()
+        public static Config GetConfig(DisplayMode displayMode)
         {
             var config = new Config(ConfigUtilities.GetConfigPath());
 
             if (!config.IsRestoredFromFile)
             {
-                var vm = GetDefaultVideoMode();
-                config.video_screenwidth = (int)vm.Width;
-                config.video_screenheight = (int)vm.Height;
+                var windowSize = GetDefaultWindowSize(displayMode);
+                config.video_screenwidth = windowSize.width;
+                config.video_screenheight = windowSize.height;
             }
 
             return config;
         }
 
-        public static VideoMode GetDefaultVideoMode()
+        public static (int width, int height) GetDefaultWindowSize(DisplayMode displayMode)
         {
-            var desktop = VideoMode.DesktopMode;
-
             var baseWidth = 640;
             var baseHeight = 400;
 
@@ -52,8 +51,8 @@ namespace ManagedDoom.SFML
                 var nextWidth = currentWidth + baseWidth;
                 var nextHeight = currentHeight + baseHeight;
 
-                if (nextWidth >= 0.9 * desktop.Width ||
-                    nextHeight >= 0.9 * desktop.Height)
+                if (nextWidth >= 0.9 * displayMode.Width ||
+                    nextHeight >= 0.9 * displayMode.Height)
                 {
                     break;
                 }
@@ -62,15 +61,15 @@ namespace ManagedDoom.SFML
                 currentHeight = nextHeight;
             }
 
-            return new VideoMode((uint)currentWidth, (uint)currentHeight);
+            return (currentWidth, currentHeight);
         }
 
-        public static SfmlMusic GetSfmlMusicInstance(Config config, Wad wad)
+        public static XnaMusic GetMusicInstance(Config config, Wad wad)
         {
             var sfPath = Path.Combine(ConfigUtilities.GetExeDirectory(), config.audio_soundfont);
             if (File.Exists(sfPath))
             {
-                return new SfmlMusic(config, wad, sfPath);
+                return new XnaMusic(config, wad, sfPath);
             }
             else
             {

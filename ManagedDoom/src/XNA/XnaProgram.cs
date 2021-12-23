@@ -17,9 +17,9 @@
 
 using System;
 
-namespace ManagedDoom.SFML
+namespace ManagedDoom.Xna
 {
-    public static class SfmlProgram
+    public static class XnaProgram
     {
         public static void Main(string[] args)
         {
@@ -32,7 +32,7 @@ namespace ManagedDoom.SFML
             {
                 string quitMessage = null;
 
-                using (var app = new SfmlDoom(new CommandLineArgs(args)))
+                using (var app = new XnaDoom(new CommandLineArgs(args)))
                 {
                     app.Run();
                     quitMessage = app.QuitMessage;
