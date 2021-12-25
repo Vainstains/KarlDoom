@@ -1,3 +1,17 @@
+# OpenTK Doom
+
+This is an experimental port of Managed Doom to OpenTK.
+
+## Known issues
+
+* Fullscreen does not work.
+* Mouse does not work.
+* No sound.
+
+Below is the original readme.
+
+---
+
 # Managed Doom
 
 ![Doom II MAP01 screenshot](screenshots/doom2-map01.png)
