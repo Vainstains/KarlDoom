@@ -100,6 +100,11 @@ namespace ManagedDoom.Silk
 
         public void Dispose()
         {
+            if (window != null)
+            {
+                window.Dispose();
+                window = null;
+            }
         }
 
         public string QuitMessage => doom.QuitMessage;
