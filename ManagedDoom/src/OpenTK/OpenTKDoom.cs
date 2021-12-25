@@ -1,5 +1,5 @@
 ﻿using System;
-using System.ComponentModel;
+using System.Runtime.ExceptionServices;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
@@ -23,28 +23,36 @@ namespace ManagedDoom.OpenTK
 
         public OpenTKDoom(CommandLineArgs args)
         {
-            this.args = args;
-
-            config = new Config(ConfigUtilities.GetConfigPath());
-
-            var gameWindowSettings = new GameWindowSettings
+            try
             {
-                UpdateFrequency = 35,
-                RenderFrequency = 35
-            };
+                this.args = args;
 
-            var nativeWindowSettings = new NativeWindowSettings
+                config = new Config(ConfigUtilities.GetConfigPath());
+
+                var gameWindowSettings = new GameWindowSettings
+                {
+                    UpdateFrequency = 35,
+                    RenderFrequency = 35
+                };
+
+                var nativeWindowSettings = new NativeWindowSettings
+                {
+                    Size = new Vector2i(2 * 640, 2 * 400)
+                };
+
+                window = new GameWindow(gameWindowSettings, nativeWindowSettings);
+
+                window.Load += OnLoad;
+                window.UpdateFrame += OnUpdate;
+                window.RenderFrame += OnRender;
+                window.KeyDown += KeyDown;
+                window.KeyUp += KeyUp;
+            }
+            catch (Exception e)
             {
-                Size = new Vector2i(2 * 640, 2 * 400)
-            };
-
-            window = new GameWindow(gameWindowSettings, nativeWindowSettings);
-
-            window.Load += OnLoad;
-            window.UpdateFrame += OnUpdate;
-            window.RenderFrame += OnRender;
-            window.KeyDown += KeyDown;
-            window.KeyUp += KeyUp;
+                Dispose();
+                ExceptionDispatchInfo.Throw(e);
+            }
         }
 
         public void Run()
@@ -99,6 +107,12 @@ namespace ManagedDoom.OpenTK
             {
                 video.Dispose();
                 video = null;
+            }
+
+            if (window != null)
+            {
+                window.Dispose();
+                window = null;
             }
         }
 
