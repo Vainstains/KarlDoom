@@ -1,3 +1,16 @@
+# FNA.NET Doom
+
+This is an experimental port of Managed Doom to FNA.NET.
+
+## Known issues
+
+* Fullscreen does not work.
+* Sound is incomplete.
+
+Below is the original readme.
+
+---
+
 # Managed Doom
 
 ![Doom II MAP01 screenshot](screenshots/doom2-map01.png)
