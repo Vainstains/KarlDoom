@@ -18,14 +18,15 @@
 using System;
 using System.IO;
 using System.Runtime.ExceptionServices;
-using SFML.Audio;
-using SFML.System;
+using System.Runtime.InteropServices;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using MeltySynth;
 using ManagedDoom.Audio;
 
-namespace ManagedDoom.SFML
+namespace ManagedDoom.Xna
 {
-    public sealed class SfmlMusic : IMusic, IDisposable
+    public sealed class XnaMusic : IMusic, IDisposable
     {
         private Config config;
         private Wad wad;
@@ -33,7 +34,7 @@ namespace ManagedDoom.SFML
         private MusStream stream;
         private Bgm current;
 
-        public SfmlMusic(Config config, Wad wad, string sfPath)
+        public XnaMusic(Config config, Wad wad, string sfPath)
         {
             try
             {
@@ -109,7 +110,6 @@ namespace ManagedDoom.SFML
 
             if (stream != null)
             {
-                stream.Stop();
                 stream.Dispose();
                 stream = null;
             }
@@ -138,22 +138,23 @@ namespace ManagedDoom.SFML
 
 
 
-        private class MusStream : SoundStream
+        private class MusStream : IDisposable
         {
-            private SfmlMusic parent;
+            private XnaMusic parent;
             private Config config;
 
             private Synthesizer synthesizer;
 
+            private DynamicSoundEffectInstance dynamicSound;
             private int batchLength;
             private float[] left;
             private float[] right;
-            private short[] batch;
+            private byte[] batch;
 
             private IDecoder current;
             private IDecoder reserved;
 
-            public MusStream(SfmlMusic parent, Config config, string sfPath)
+            public MusStream(XnaMusic parent, Config config, string sfPath)
             {
                 this.parent = parent;
                 this.config = config;
@@ -164,25 +165,27 @@ namespace ManagedDoom.SFML
                 settings.BlockSize = MusDecoder.BlockLength;
                 synthesizer = new Synthesizer(sfPath, settings);
 
+                dynamicSound = new DynamicSoundEffectInstance(MusDecoder.SampleRate, AudioChannels.Stereo);
                 batchLength = (int)Math.Round(0.05 * MusDecoder.SampleRate);
                 left = new float[batchLength];
                 right = new float[batchLength];
-                batch = new short[2 * batchLength];
+                batch = new byte[4 * batchLength];
 
-                Initialize(2, (uint)MusDecoder.SampleRate);
+                dynamicSound.BufferNeeded += (e, s) => OnGetData();
             }
 
             public void SetDecoder(IDecoder decoder)
             {
                 reserved = decoder;
 
-                if (Status == SoundStatus.Stopped)
+                if (dynamicSound.State == SoundState.Stopped)
                 {
-                    Play();
+                    OnGetData();
+                    dynamicSound.Play();
                 }
             }
 
-            protected override bool OnGetData(out short[] samples)
+            private void OnGetData()
             {
                 if (reserved != current)
                 {
@@ -194,7 +197,8 @@ namespace ManagedDoom.SFML
 
                 current.RenderWaveform(synthesizer, left, right);
 
-                var pos = 0;
+                var i = 0;
+                var p = MemoryMarshal.Cast<byte, short>(batch);
 
                 for (var t = 0; t < batchLength; t++)
                 {
@@ -218,17 +222,21 @@ namespace ManagedDoom.SFML
                         sampleRight = short.MaxValue;
                     }
 
-                    batch[pos++] = (short)sampleLeft;
-                    batch[pos++] = (short)sampleRight;
+                    p[i++] = (short)sampleLeft;
+                    p[i++] = (short)sampleRight;
                 }
 
-                samples = batch;
-
-                return true;
+                dynamicSound.SubmitBuffer(batch);
             }
 
-            protected override void OnSeek(Time timeOffset)
+            public void Dispose()
             {
+                if (dynamicSound != null)
+                {
+                    dynamicSound.Stop();
+                    dynamicSound.Dispose();
+                    dynamicSound = null;
+                }
             }
         }
 

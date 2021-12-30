@@ -17,17 +17,17 @@
 
 using System;
 using System.Runtime.ExceptionServices;
-using SFML.Graphics;
-using SFML.System;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using ManagedDoom.Video;
 
-namespace ManagedDoom.SFML
+namespace ManagedDoom.Xna
 {
-    public sealed class SfmlVideo : IVideo, IDisposable
+    public sealed class XnaVideo : IVideo, IDisposable
     {
-        private Renderer renderer;
+        private XnaDoom xnaDoom;
 
-        private RenderWindow window;
+        private Renderer renderer;
 
         private int windowWidth;
         private int windowHeight;
@@ -36,25 +36,24 @@ namespace ManagedDoom.SFML
         private int textureHeight;
 
         private byte[] textureData;
-        private global::SFML.Graphics.Texture texture;
-        private global::SFML.Graphics.Sprite sprite;
-        private global::SFML.Graphics.RenderStates renderStates;
+        private Texture2D texture;
+        private SpriteBatch sprite;
 
-        public SfmlVideo(Config config, GameContent content, RenderWindow window)
+        public XnaVideo(XnaDoom xnaDoom, Config config, GameContent content)
         {
             try
             {
                 Console.Write("Initialize video: ");
+
+                this.xnaDoom = xnaDoom;
 
                 renderer = new Renderer(config, content);
 
                 config.video_gamescreensize = Math.Clamp(config.video_gamescreensize, 0, MaxWindowSize);
                 config.video_gammacorrection = Math.Clamp(config.video_gammacorrection, 0, MaxGammaCorrectionLevel);
 
-                this.window = window;
-
-                windowWidth = (int)window.Size.X;
-                windowHeight = (int)window.Size.Y;
+                windowWidth = xnaDoom.GraphicsDevice.PresentationParameters.BackBufferWidth;
+                windowHeight = xnaDoom.GraphicsDevice.PresentationParameters.BackBufferHeight;
 
                 if (config.video_highresolution)
                 {
@@ -69,17 +68,8 @@ namespace ManagedDoom.SFML
 
                 textureData = new byte[4 * renderer.Width * renderer.Height];
 
-                texture = new global::SFML.Graphics.Texture((uint)textureWidth, (uint)textureHeight);
-                sprite = new global::SFML.Graphics.Sprite(texture);
-
-                sprite.Position = new Vector2f(0, 0);
-                sprite.Rotation = 90;
-                var scaleX = (float)windowWidth / renderer.Width;
-                var scaleY = (float)windowHeight / renderer.Height;
-                sprite.Scale = new Vector2f(scaleY, -scaleX);
-                sprite.TextureRect = new IntRect(0, 0, renderer.Height, renderer.Width);
-
-                renderStates = new RenderStates(BlendMode.None);
+                texture = new Texture2D(xnaDoom.GraphicsDevice, textureWidth, textureHeight);
+                sprite = new SpriteBatch(xnaDoom.GraphicsDevice);
 
                 Console.WriteLine("OK");
             }
@@ -95,9 +85,33 @@ namespace ManagedDoom.SFML
         {
             renderer.Render(doom, textureData);
 
-            texture.Update(textureData, (uint)renderer.Height, (uint)renderer.Width, 0, 0);
-            window.Draw(sprite, renderStates);
-            window.Display();
+            texture.SetData(
+                0,
+                new Rectangle(0, 0, renderer.Height, renderer.Width),
+                textureData,
+                0,
+                textureData.Length);
+
+            sprite.Begin(
+                SpriteSortMode.Immediate,
+                BlendState.Opaque,
+                SamplerState.PointClamp,
+                null,
+                null,
+                null,
+                Matrix.Identity);
+
+            sprite.Draw(
+                texture,
+                new Rectangle(0, 0, windowHeight, windowWidth),
+                new Rectangle(0, 0, renderer.Height, renderer.Width),
+                Color.White,
+                -MathF.PI / 2,
+                new Vector2(renderer.Height, 0),
+                SpriteEffects.FlipHorizontally,
+                0F);
+
+            sprite.End();
         }
 
         public void InitializeWipe()
@@ -107,7 +121,7 @@ namespace ManagedDoom.SFML
 
         public bool HasFocus()
         {
-            return window.HasFocus();
+            return true;
         }
 
         public void Dispose()
